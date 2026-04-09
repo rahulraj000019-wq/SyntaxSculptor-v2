@@ -28,6 +28,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Lexer } from '@/lib/compiler/lexer';
 import { Parser } from '@/lib/compiler/parser';
+import { SemanticAnalyzer } from '@/lib/compiler/semantic';
+import { formatIR, generateIR } from '@/lib/compiler/ir';
 import { explainCompilerErrors, AIErrorExplanationOutput } from '@/ai/flows/ai-error-explanation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
@@ -68,6 +70,7 @@ export default function SyntaxSculptorPage() {
   const [aiUnavailable, setAiUnavailable] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [isMaximized, setIsMaximized] = useState(false);
+  const [irText, setIrText] = useState<string>('');
   
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +94,7 @@ export default function SyntaxSculptorPage() {
     setAiUnavailable(false);
     setStatus('idle');
     setErrors([]);
+    setIrText('');
 
     // Step 1: Lexical Analysis (Local)
     const lexer = new Lexer(code);
@@ -98,11 +102,19 @@ export default function SyntaxSculptorPage() {
     // Step 2: Syntax Analysis (Local)
     const parser = new Parser(lexer);
     parser.parse();
+
+    // Step 3: Semantic Analysis (Local)
+    const semantic = new SemanticAnalyzer(code);
+    semantic.analyze();
+
+    // Step 4: IR Generation (Local)
+    const ir = generateIR(code);
+    setIrText(formatIR(ir.instructions));
     
-    const localErrors = [...lexer.getErrors(), ...parser.getErrors()];
+    const localErrors = [...lexer.getErrors(), ...parser.getErrors(), ...semantic.getErrors(), ...ir.errors];
 
     try {
-      // Step 3: AI Semantic & Deep Analysis (Remote)
+      // Step 5: AI Semantic & Deep Analysis (Remote)
       const result = await explainCompilerErrors({
         sourceCode: code,
         compilerErrors: localErrors.map(e => ({
@@ -389,6 +401,18 @@ export default function SyntaxSculptorPage() {
                       </p>
                     )}
                   </div>
+
+                  {irText && (
+                    <div className="bg-white/70 border border-muted-foreground/10 p-6 rounded-2xl space-y-3 ring-1 ring-black/5">
+                      <div className="flex items-center gap-2 text-primary/80">
+                        <Layers className="h-4 w-4 text-primary/60" />
+                        <h4 className="font-headline font-bold text-sm uppercase tracking-wide">Intermediate Representation (IR)</h4>
+                      </div>
+                      <pre className="text-[12px] leading-relaxed font-code whitespace-pre-wrap break-words bg-muted/30 border border-muted-foreground/10 p-4 rounded-xl overflow-auto">
+                        {irText}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
 

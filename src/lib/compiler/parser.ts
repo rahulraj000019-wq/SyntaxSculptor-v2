@@ -112,7 +112,7 @@ export class Parser {
       // Function Definition
       this.consume();
       // Simple param list (ignoring types for this educational parser)
-      while (this.currentToken.type !== 'RPAREN' && this.currentToken.type !== 'EOF') {
+      while (!['RPAREN', 'EOF'].includes(this.currentToken.type)) {
         this.consume();
       }
       this.match('RPAREN');
@@ -141,7 +141,7 @@ export class Parser {
       this.expression();
     } else if (this.currentToken.type === 'LPAREN') {
       this.consume();
-      while (this.currentToken.type !== 'RPAREN' && this.currentToken.type !== 'EOF') {
+      while (!['RPAREN', 'EOF'].includes(this.currentToken.type)) {
         this.consume();
       }
       this.match('RPAREN');
