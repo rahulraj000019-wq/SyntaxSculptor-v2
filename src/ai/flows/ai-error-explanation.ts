@@ -1,4 +1,5 @@
 'use server';
+export const runtime = 'nodejs';
 /**
  * @fileOverview This file implements a Genkit flow for generating AI-enhanced explanations for C language compiler errors.
  * It takes the source code and optionally pre-detected errors, then uses a large language model to provide
