@@ -120,7 +120,14 @@ export class Parser {
       this.statementList();
       this.match('RBRACE');
     } else {
-      // Variable Declaration
+      // Variable Declaration (allow optional initializer)
+      // Examples:
+      //   int x;
+      //   int x = 10;
+      if (this.currentToken.type === 'ASSIGN') {
+        this.consume();
+        this.expression();
+      }
       this.match('SEMICOLON');
     }
   }
