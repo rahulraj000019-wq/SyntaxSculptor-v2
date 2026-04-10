@@ -105,7 +105,34 @@ const aiErrorExplanationFlow = ai.defineFlow(
         const { output } = await aiErrorExplanationPrompt(input);
         return output!;
       } catch (err) {
-        if (!isRetryableGenkitError(err) || attempt === maxAttempts) throw err;
+        if (!isRetryableGenkitError(err)) throw err;
+        if (attempt === maxAttempts) {
+          // Degrade gracefully instead of throwing so the UI doesn't show "AI unavailable"
+          // for transient provider overloads.
+          return {
+            success: false,
+            enhancedErrors: [
+              {
+                originalMessage: 'AI service is busy (503)',
+                line: 1,
+                type: 'Service',
+                explanation:
+                  'The Gemini model is currently experiencing high demand (HTTP 503). Your code checks still ran locally; only the AI explanation layer is temporarily unavailable.',
+                potentialCauses: [
+                  'Temporary traffic spike on the model endpoint',
+                  'Provider-side capacity throttling',
+                  'Short-lived regional outage',
+                ],
+                suggestions: [
+                  'Wait 10–30 seconds and click “Run Diagnostics” again.',
+                  'If this keeps happening, try again later (provider load usually drops).',
+                  'Keep using the local Lexical/Syntax/Semantic/IR results while AI is busy.',
+                ],
+              },
+            ],
+            overallFeedback: 'AI is temporarily busy. Please retry shortly.',
+          };
+        }
         // 600ms, 1200ms, 2400ms between retries
         await sleep(600 * Math.pow(2, attempt - 1));
       }
