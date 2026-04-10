@@ -56,7 +56,37 @@ const AIErrorExplanationOutputSchema = z.object({
 export type AIErrorExplanationOutput = z.infer<typeof AIErrorExplanationOutputSchema>;
 
 export async function explainCompilerErrors(input: AIErrorExplanationInput): Promise<AIErrorExplanationOutput> {
-  return aiErrorExplanationFlow(input);
+  try {
+    return await aiErrorExplanationFlow(input);
+  } catch (err) {
+    // Last-resort safety: never let transient provider overload crash the server action.
+    if (isRetryableGenkitError(err)) {
+      return {
+        success: false,
+        enhancedErrors: [
+          {
+            originalMessage: 'AI service is busy (503)',
+            line: 1,
+            type: 'Service',
+            explanation:
+              'The Gemini model is currently experiencing high demand (HTTP 503). Your code checks still ran locally; only the AI explanation layer is temporarily unavailable.',
+            potentialCauses: [
+              'Temporary traffic spike on the model endpoint',
+              'Provider-side capacity throttling',
+              'Short-lived regional outage',
+            ],
+            suggestions: [
+              'Wait 10–30 seconds and click “Run Diagnostics” again.',
+              'If this keeps happening, try again later (provider load usually drops).',
+              'Keep using the local Lexical/Syntax/Semantic/IR results while AI is busy.',
+            ],
+          },
+        ],
+        overallFeedback: 'AI is temporarily busy. Please retry shortly.',
+      };
+    }
+    throw err;
+  }
 }
 
 const aiErrorExplanationPrompt = ai.definePrompt({

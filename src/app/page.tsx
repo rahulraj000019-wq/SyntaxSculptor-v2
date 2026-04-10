@@ -135,7 +135,9 @@ export default function SyntaxSculptorPage() {
       }
     } catch (err) {
       console.error('AI Analysis failed:', err);
-      setAiUnavailable(true);
+      const anyErr = err as any;
+      const is503 = anyErr?.status === 'UNAVAILABLE' || anyErr?.code === 503;
+      setAiUnavailable(!is503);
       if (localErrors.length > 0) {
         setStatus('failed');
         setErrors(localErrors);
