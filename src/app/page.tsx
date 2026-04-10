@@ -251,7 +251,8 @@ export default function SyntaxSculptorPage() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">AI explanations and Magic Fix unavailable</p>
             <p className="text-xs text-amber-700/90 dark:text-amber-300/90 mt-1">
-              Add <code className="bg-amber-500/20 px-1 rounded font-mono text-[11px]">GEMINI_API_KEY</code> to <code className="bg-amber-500/20 px-1 rounded font-mono text-[11px]">.env.local</code> and restart the dev server. Get a key at{' '}
+              Local diagnostics (Lexical/Syntax/Semantic/IR) still work. To enable AI, set{' '}
+              <code className="bg-amber-500/20 px-1 rounded font-mono text-[11px]">GEMINI_API_KEY</code> (in <code className="bg-amber-500/20 px-1 rounded font-mono text-[11px]">.env.local</code> for localhost or Vercel Environment Variables for deployments) and redeploy/restart. Get a key at{' '}
               <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-amber-900">aistudio.google.com/apikey</a>.
             </p>
           </div>

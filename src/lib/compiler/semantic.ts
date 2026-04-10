@@ -159,7 +159,14 @@ export class SemanticAnalyzer {
       declareSymbol({ kind: 'var', ctype, name, declaredAtLine: firstId.line });
 
       // consume remainder of the declarator list to ';'
-      while (peek().type !== 'SEMICOLON' && peek().type !== 'EOF') {
+      // If the user forgets a semicolon, we must not consume into later statements
+      // (e.g. function calls with commas) and misinterpret identifiers as redeclarations.
+      while (
+        peek().type !== 'SEMICOLON' &&
+        peek().type !== 'EOF' &&
+        peek().type !== 'RBRACE' &&
+        peek().type !== 'LBRACE'
+      ) {
         if (peek().type === 'COMMA') {
           consume(); // ,
           if (peek().type === 'ID') {
