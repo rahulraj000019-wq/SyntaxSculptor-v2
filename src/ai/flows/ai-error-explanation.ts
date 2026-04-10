@@ -12,6 +12,18 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableGenkitError(err: unknown) {
+  const anyErr = err as any;
+  const code = anyErr?.code;
+  const status = anyErr?.status;
+  // GenkitError typically exposes { status: 'UNAVAILABLE', code: 503 }
+  return status === 'UNAVAILABLE' || code === 503;
+}
+
 const CompilerErrorSchema = z.object({
   message: z.string().describe('The raw error message from the compiler.'),
   line: z.number().describe('The line number where the error occurred.'),
@@ -86,7 +98,20 @@ const aiErrorExplanationFlow = ai.defineFlow(
     outputSchema: AIErrorExplanationOutputSchema,
   },
   async (input) => {
-    const { output } = await aiErrorExplanationPrompt(input);
-    return output!;
+    // Gemini sometimes returns 503 (high demand). Retry a few times with backoff.
+    const maxAttempts = 4;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const { output } = await aiErrorExplanationPrompt(input);
+        return output!;
+      } catch (err) {
+        if (!isRetryableGenkitError(err) || attempt === maxAttempts) throw err;
+        // 600ms, 1200ms, 2400ms between retries
+        await sleep(600 * Math.pow(2, attempt - 1));
+      }
+    }
+
+    // Unreachable, but satisfies TypeScript control-flow analysis.
+    throw new Error('AI flow failed after retries.');
   }
 );
