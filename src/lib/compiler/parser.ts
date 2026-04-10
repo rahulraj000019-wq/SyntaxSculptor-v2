@@ -109,16 +109,22 @@ export class Parser {
     this.match('ID');
     
     if (this.currentToken.type === 'LPAREN') {
-      // Function Definition
+      // Function definition OR prototype declaration
       this.consume();
       // Simple param list (ignoring types for this educational parser)
       while (!['RPAREN', 'EOF'].includes(this.currentToken.type)) {
         this.consume();
       }
       this.match('RPAREN');
-      this.match('LBRACE');
-      this.statementList();
-      this.match('RBRACE');
+      if (this.currentToken.type === 'LBRACE') {
+        // Function Definition
+        this.consume();
+        this.statementList();
+        this.match('RBRACE');
+      } else {
+        // Function Prototype (e.g., `int printf();`)
+        this.match('SEMICOLON');
+      }
     } else {
       // Variable Declaration (allow optional initializer)
       // Examples:
